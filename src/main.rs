@@ -40,6 +40,10 @@ enum Command {
         #[clap(long, default_value_t = 1024)]
         min_port: u16,
 
+        /// Maximum TCP port number to accept.
+        #[clap(long, default_value_t = 65535)]
+        max_port: u16,
+
         /// Optional secret for authentication.
         #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
         secret: Option<String>,
@@ -59,8 +63,18 @@ async fn run(command: Command) -> Result<()> {
             let client = Client::new(&local_host, local_port, &to, port, secret.as_deref()).await?;
             client.listen().await?;
         }
-        Command::Server { min_port, secret } => {
-            Server::new(min_port, secret.as_deref()).listen().await?;
+        Command::Server {
+            min_port,
+            max_port,
+            secret,
+        } => {
+            if min_port <= max_port {
+                Server::new(min_port, max_port, secret.as_deref())
+                    .listen()
+                    .await?;
+            } else {
+                println!("error: min_port cannot be bigger than max_port");
+            }
         }
     }
 

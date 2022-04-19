@@ -93,6 +93,7 @@ USAGE:
 
 OPTIONS:
     -h, --help                   Print help information
+        --max-port <MAX_PORT>    Maximum TCP port number to accept [default: 65535]
         --min-port <MIN_PORT>    Minimum TCP port number to accept [default: 1024]
     -s, --secret <SECRET>        Optional secret for authentication [env: BORE_SECRET]
     -V, --version                Print version information

@@ -20,6 +20,9 @@ pub struct Server {
     /// The minimum TCP port that can be forwarded.
     min_port: u16,
 
+    /// The maximum TCP port that can be forwarded.
+    max_port: u16,
+
     /// Optional secret used to authenticate clients.
     auth: Option<Authenticator>,
 
@@ -29,9 +32,10 @@ pub struct Server {
 
 impl Server {
     /// Create a new server with a specified minimum port number.
-    pub fn new(min_port: u16, secret: Option<&str>) -> Self {
+    pub fn new(min_port: u16, max_port: u16, secret: Option<&str>) -> Self {
         Server {
             min_port,
+            max_port,
             conns: Arc::new(DashMap::new()),
             auth: secret.map(Authenticator::new),
         }
@@ -99,8 +103,17 @@ impl Server {
                 Ok(())
             }
             Some(ClientMessage::Hello(port)) => {
-                if port != 0 && port < self.min_port {
-                    warn!(?port, "client port number too low");
+                if port != 0 && port < self.min_port || port > self.max_port {
+                    warn!(
+                        ?port,
+                        "client port number out of range [{}-{}]", self.min_port, self.max_port
+                    );
+                    stream
+                        .send(ServerMessage::Error(format!(
+                            "client port number out of range [{}-{}]",
+                            self.min_port, self.max_port
+                        )))
+                        .await?;
                     return Ok(());
                 }
                 info!(?port, "new client");
@@ -165,6 +178,6 @@ impl Server {
 
 impl Default for Server {
     fn default() -> Self {
-        Server::new(1024, None)
+        Server::new(1024, 65535, None)
     }
 }
